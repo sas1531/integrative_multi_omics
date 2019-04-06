@@ -1,0 +1,12 @@
+NHDF_18hPAA_patton_forward.faux.bed 18hPAA_patton_forward
+NHDF_18hPAA_strain17_forward.faux.bed 18hPAA_strain17_forward
+NHDF_18h_patton_forward.faux.bed  18h_patton_forward
+NHDF_18h_strain17_forward.faux.bed  18h_strain17_forward
+NHDF_6h_patton_forward.faux.bed 6h_patton_forward
+NHDF_6h_strain17_forward.faux.bed 6h_strain17_forward
+NHDF_18hPAA_patton_reverse.faux.bed 18hPAA_patton_reverse
+NHDF_18hPAA_strain17_reverse.faux.bed 18hPAA_strain17_reverse
+NHDF_18h_patton_reverse.faux.bed  18h_patton_reverse
+NHDF_18h_strain17_reverse.faux.bed  18h_strain17_reverse
+NHDF_6h_patton_reverse.faux.bed 6h_patton_reverse
+NHDF_6h_strain17_reverse.faux.bed 6h_strain17_reverse
