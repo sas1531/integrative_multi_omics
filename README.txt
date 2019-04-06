@@ -1,6 +1,6 @@
 Re-Annotation of the HSV-1 Genome
 
-Collection of NGS analysis scripts for CAGE-SEQ
+Collection of NGS analysis scripts for CAGE-seq
 
 Quality Control
 Alignment
