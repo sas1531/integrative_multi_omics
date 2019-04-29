@@ -35,3 +35,7 @@ samtools index /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_6h_patton_out
 bedtools bamtobed -i NHDF_18h_patton_out.sorted.bam > NHDF_18h_patton_out.bed
 bedtools bamtobed -i NHDF_18h_PAA_patton_out.sorted.bam > NHDF_18h_PAA_patton_out.bed
 bedtools bamtobed -i NHDF_6h_patton_out.sorted.bam > NHDF_6h_patton_out.bed
+
+genomeCoverageBed -ibam /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_18h_patton_out.sorted.bam -d -g /gpfs/data/courses/bmscga4498/resources/hg38_patton.fasta > ./NHDF_18h_patton_out.bedgraph
+genomeCoverageBed -ibam /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_18h_PAA_patton_out.sorted.bam -d -g /gpfs/data/courses/bmscga4498/resources/hg38_patton.fasta > ./NHDF_18h_PAA_patton_out.bedgraph
+genomeCoverageBed -ibam /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_6h_patton_out.sorted.bam -d -g /gpfs/data/courses/bmscga4498/resources/hg38_patton.fasta > ./NHDF_6h_patton_out.bedgraph
