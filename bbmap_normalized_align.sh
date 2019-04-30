@@ -39,3 +39,10 @@ bedtools bamtobed -i NHDF_6h_patton_out.sorted.bam > NHDF_6h_patton_out.bed
 genomeCoverageBed -ibam /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_18h_patton_out.sorted.bam -d -g /gpfs/data/courses/bmscga4498/resources/hg38_patton.fasta > ./NHDF_18h_patton_out.bedgraph
 genomeCoverageBed -ibam /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_18h_PAA_patton_out.sorted.bam -d -g /gpfs/data/courses/bmscga4498/resources/hg38_patton.fasta > ./NHDF_18h_PAA_patton_out.bedgraph
 genomeCoverageBed -ibam /gpfs/data/courses/bmscga4498/tss_sites/patton/NHDF_6h_patton_out.sorted.bam -d -g /gpfs/data/courses/bmscga4498/resources/hg38_patton.fasta > ./NHDF_6h_patton_out.bedgraph
+
+#####
+awk '{if ($7 == "+") print $1"  "$2"  "$7; else if ($7 == "-") print $1"  "$3"  "$7}' NHDF_18h_patton_out.bed > cage_18h_patton_tag_count.txt
+
+awk '{if ($7 == "+") print $1"  "$2"  "$7; else if ($7 == "-") print $1"  "$3"  "$7}' NHDF_6h_patton_out.bed > cage_6h_patton_tag_count.txt
+
+awk '{if ($7 == "+") print $1"  "$2"  "$7; else if ($7 == "-") print $1"  "$3"  "$7}' NHDF_18h_PAA_patton_out.bed > cage_18h_PAA_patton_tag_count.txt
