@@ -1,0 +1,944 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+PEAK CALLING FOR PATTON
+
+---
+
+```{r}
+
+# Load libraries 
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(data.table)
+library(rowr)
+library(rlist)
+
+
+```
+
+
+---
+
+
+```{r}
+
+### Set working directory
+setwd("/Users/sha/Desktop/Omics/peak_calling")
+
+# Only include patton forward strand ######
+
+# CAGE
+for_cage_18 <- read.table("./NHDF_18h_forward_patton_BBMap_peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_cage_18)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+for_cage_18 <- dplyr::select(for_cage_18, start, end, norm_tag_count)
+
+for_cage_18_paa <- read.table("./NHDF_18h_PAA_forward_patton_BBMap_peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_cage_18_paa)[c(3,4,6)] <- c("start", "end", "norm_tag_count")  
+for_cage_18_paa <- dplyr::select(for_cage_18_paa, start, end, norm_tag_count)
+
+for_cage_6 <- read.table("./NHDF_6h_forward_patton_BBMap_peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_cage_6)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+for_cage_6 <- dplyr::select(for_cage_6, start, end, norm_tag_count)
+
+# Nanopore
+for_nano_18 <- read.table("./NHDF_pass_Run4_proovread_best.sorted.forward.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_nano_18)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+for_nano_18 <- dplyr::select(for_nano_18, start, end, norm_tag_count)
+
+for_nano_18_paa <- read.table("./NHDF_pass_Run7_proovread_best.sorted.forward.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_nano_18_paa)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+for_nano_18_paa <- dplyr::select(for_nano_18_paa, start, end, norm_tag_count)
+
+for_nano_6 <- read.table("./NHDF_pass_Run5_proovread_best.sorted.forward.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_nano_6)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+for_nano_6 <- dplyr::select(for_nano_6, start, end, norm_tag_count)
+
+for_nano_6_chx <- read.table("./NHDF_pass_Run6_proovread_best.sorted.forward.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(for_nano_6_chx)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+for_nano_6_chx <- dplyr::select(for_nano_6_chx, start, end, norm_tag_count)
+
+as.tibble(for_cage_18)
+as.tibble(for_cage_18_paa)
+as.tibble(for_cage_6)
+as.tibble(for_nano_18)
+as.tibble(for_nano_18_paa)
+as.tibble(for_nano_6)
+as.tibble(for_nano_6_chx)
+
+
+```
+
+
+
+---
+
+```{r}
+
+# Create label column for each hour
+for_nano_18$hour <- "18h"
+for_nano_6$hour <- "6h"
+
+# Combine nano 18h and 6h by row, create peak column (middle of start and end) 
+for_nano_comb <- rbind(for_nano_18, for_nano_6)
+for_nano_comb$peak <- (for_nano_comb$start + for_nano_comb$end)/2
+
+# Order by peak 
+for_nano_comb <- for_nano_comb[order(for_nano_comb$peak),] 
+
+# Add peak count column
+for_nano_comb$peak_count <- 1
+
+# Aggregate by peak and sum
+for_nano_comb$norm_tag_count <- as.character(for_nano_comb$norm_tag_count)
+for_nano_comb
+
+# Aggregate by peak and sum
+for_nano_agg <- dplyr::select(for_nano_comb, hour, peak, peak_count, norm_tag_count)
+for_nano_agg_1 <- dplyr::select(for_nano_comb, hour, peak, peak_count, norm_tag_count)
+for_nano_agg <- merge(aggregate(hour ~ peak, for_nano_agg, toString),
+                      aggregate(peak_count ~ peak, for_nano_agg, sum))
+for_nano_agg <- merge(for_nano_agg, aggregate(norm_tag_count ~ peak, for_nano_agg_1, toString))
+
+colnames(for_nano_agg)[1:4] <- c("nano_peak", "nano_hour", "nano_count", "nano_tag")
+as.tibble(for_nano_agg)
+
+```
+
+
+
+---
+
+```{r}
+
+# Create label column for each hour
+for_cage_18$hour <- "18h"
+for_cage_6$hour <- "6h"
+
+# Combine cage 18h and 6h by row, create peak column (middle of start and end) 
+for_cage_comb <- rbind(for_cage_18, for_cage_6)
+for_cage_comb$peak <- (for_cage_comb$start + for_cage_comb$end)/2
+
+# Order by peak 
+for_cage_comb <- for_cage_comb[order(for_cage_comb$peak),] 
+
+# Add peak count column
+for_cage_comb$peak_count <- 1
+
+# Aggregate by peak and sum
+for_cage_agg <- dplyr::select(for_cage_comb, hour, peak, peak_count, norm_tag_count)
+for_cage_agg_1 <- dplyr::select(for_cage_comb, hour, peak, peak_count, norm_tag_count)
+for_cage_agg <- merge(aggregate(hour ~ peak, for_cage_agg, toString),
+                      aggregate(peak_count ~ peak, for_cage_agg, sum))
+for_cage_agg <- merge(for_cage_agg, aggregate(norm_tag_count ~ peak, for_cage_agg_1, toString))
+
+colnames(for_cage_agg)[1:4] <- c("cage_peak", "cage_hour", "cage_count", "cage_tag")
+as.tibble(for_cage_agg)
+
+
+write.table(for_cage_agg, "for_cage_agg.txt", sep = "\t", quote = FALSE)
+
+```
+
+
+---
+
+
+```{r}
+
+#match <- apply(as.data.frame(for_nano_agg$peak), 1, function(p) ifelse(any(((for_cage_agg$peak - 30) <= p) & ((for_cage_agg$peak + 30) >= p)), p, NA))
+
+```
+
+
+---
+
+```{r}
+
+# Create empty matrix to fill
+both_for <- data.frame(matrix(ncol = 2, nrow = 0))
+names <- c("cage_peak", "nano_peak")
+colnames(both_for) <- names
+
+```
+
+
+```{r }
+
+# R loop to iterate through peaks within cage seq range
+for (x in for_nano_agg$nano_peak) {
+  for (y in for_cage_agg$cage_peak) {
+    if (x > (y-30) & x < (y+30)) {
+      both_for <- rbind(both_for,c(y,x))
+    }
+  }
+}
+
+# Name columns
+colnames(both_for) <- names
+
+```
+
+
+
+```{r}
+
+# Calculate difference between cage and nanopore
+both_for$difference <- (both_for$nano - both_for$cage)
+
+# Add hour and tag counts to dataframe
+both_for <- merge(both_for, for_cage_agg, by = "cage_peak")
+both_for <- merge(both_for, for_nano_agg, by = "nano_peak")
+
+both_for
+
+```
+
+
+```{r}
+
+unik <- duplicated(both_for$nano_peak)  ## logical vector of unique values
+seq_along(both_for$nano_peak)[unik]  ## indices
+unik_1 <- duplicated(both_for$cage_peak)  ## logical vector of unique values
+seq_along(both_for$cage_peak)[unik_1]  ## indices
+
+# Remove duplicate rows
+both_for_filter <- both_for[-c(12, 46, 52, 7, 18, 21, 29, 32, 33, 36, 49, 55, 56, 60, 
+                               62, 68, 72, 79, 92), ] 
+both_for_filter$strand <- "Forward"
+both_for_filter
+
+## 80-83 duplicates in both - check on these 
+
+```
+
+
+```{r}
+
+ggplot(both_for_filter, aes(difference, fill="lilac")) + geom_histogram(binwidth = 1)
+
+```
+
+---
+
+
+
+```{r}
+
+# Window is x plus or minus position of peak (total range of 2x)
+# Keep peak if nanopore and cage are within 30 nt downstream (very broad)
+# Drop this to 20 nt then 15 nt
+# Compare results
+
+```
+
+
+
+---
+
+REVERSE
+
+
+```{r}
+
+### Set working directory
+setwd("/Users/sha/Desktop/Omics/peak_calling")
+
+# Only include patton reverse strand ######
+
+# CAGE
+rev_cage_18 <- read.table("./NHDF_18h_reverse_patton_BBMap_peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_cage_18)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+rev_cage_18 <- dplyr::select(rev_cage_18, start, end, norm_tag_count)
+
+rev_cage_18_paa <- read.table("./NHDF_18h_PAA_reverse_patton_BBMap_peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_cage_18_paa)[c(3,4,6)] <- c("start", "end", "norm_tag_count")  
+rev_cage_18_paa <- dplyr::select(rev_cage_18_paa, start, end, norm_tag_count)
+
+rev_cage_6 <- read.table("./NHDF_6h_reverse_patton_BBMap_peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_cage_6)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+rev_cage_6 <- dplyr::select(rev_cage_6, start, end, norm_tag_count)
+
+# Nanopore
+rev_nano_18 <- read.table("./NHDF_pass_Run4_proovread_best.sorted.reverse.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_nano_18)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+rev_nano_18 <- dplyr::select(rev_nano_18, start, end, norm_tag_count)
+
+rev_nano_18_paa <- read.table("./NHDF_pass_Run7_proovread_best.sorted.reverse.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_nano_18_paa)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+rev_nano_18_paa <- dplyr::select(rev_nano_18_paa, start, end, norm_tag_count)
+
+rev_nano_6 <- read.table("./NHDF_pass_Run5_proovread_best.sorted.reverse.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_nano_6)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+rev_nano_6 <- dplyr::select(rev_nano_6, start, end, norm_tag_count)
+
+rev_nano_6_chx <- read.table("./NHDF_pass_Run6_proovread_best.sorted.reverse.TSS.bed.peaks.txt", skip = 32, head = FALSE, sep = "\t")
+colnames(rev_nano_6_chx)[c(3,4,6)] <- c("start", "end", "norm_tag_count") 
+rev_nano_6_chx <- dplyr::select(rev_nano_6_chx, start, end, norm_tag_count)
+
+as.tibble(rev_cage_18)
+as.tibble(rev_cage_18_paa)
+as.tibble(rev_cage_6)
+as.tibble(rev_nano_18)
+as.tibble(rev_nano_18_paa)
+as.tibble(rev_nano_6)
+as.tibble(rev_nano_6_chx)
+
+
+```
+
+
+
+---
+
+```{r}
+
+# Create label column rev each hour
+rev_nano_18$hour <- "18h"
+rev_nano_6$hour <- "6h"
+
+# Combine nano 18h and 6h by row, create peak column (middle of start and end) 
+rev_nano_comb <- rbind(rev_nano_18, rev_nano_6)
+rev_nano_comb$peak <- (rev_nano_comb$start + rev_nano_comb$end)/2
+
+# Order by peak 
+rev_nano_comb <- rev_nano_comb[order(rev_nano_comb$peak),] 
+
+# Add peak count column
+rev_nano_comb$peak_count <- 1
+
+# Aggregate by peak and sum
+rev_nano_comb$norm_tag_count <- as.character(rev_nano_comb$norm_tag_count)
+rev_nano_comb
+
+# Aggregate by peak and sum
+rev_nano_agg <- dplyr::select(rev_nano_comb, hour, peak, peak_count, norm_tag_count)
+rev_nano_agg_1 <- dplyr::select(rev_nano_comb, hour, peak, peak_count, norm_tag_count)
+rev_nano_agg <- merge(aggregate(hour ~ peak, rev_nano_agg, toString),
+                      aggregate(peak_count ~ peak, rev_nano_agg, sum))
+rev_nano_agg <- merge(rev_nano_agg, aggregate(norm_tag_count ~ peak, rev_nano_agg_1, toString))
+
+colnames(rev_nano_agg)[1:4] <- c("nano_peak", "nano_hour", "nano_count", "nano_tag")
+as.tibble(rev_nano_agg)
+
+```
+
+
+
+---
+
+```{r}
+
+# Create label column rev each hour
+rev_cage_18$hour <- "18h"
+rev_cage_6$hour <- "6h"
+
+# Combine cage 18h and 6h by row, create peak column (middle of start and end) 
+rev_cage_comb <- rbind(rev_cage_18, rev_cage_6)
+rev_cage_comb$peak <- (rev_cage_comb$start + rev_cage_comb$end)/2
+
+# Order by peak 
+rev_cage_comb <- rev_cage_comb[order(rev_cage_comb$peak),] 
+
+# Add peak count column
+rev_cage_comb$peak_count <- 1
+
+# Aggregate by peak and sum
+rev_cage_agg <- dplyr::select(rev_cage_comb, hour, peak, peak_count, norm_tag_count)
+rev_cage_agg_1 <- dplyr::select(rev_cage_comb, hour, peak, peak_count, norm_tag_count)
+rev_cage_agg <- merge(aggregate(hour ~ peak, rev_cage_agg, toString),
+                      aggregate(peak_count ~ peak, rev_cage_agg, sum))
+rev_cage_agg <- merge(rev_cage_agg, aggregate(norm_tag_count ~ peak, rev_cage_agg_1, toString))
+
+colnames(rev_cage_agg)[1:4] <- c("cage_peak", "cage_hour", "cage_count", "cage_tag")
+as.tibble(rev_cage_agg)
+
+write.table(rev_cage_agg, "rev_cage_agg.txt", sep = "\t", quote = FALSE)
+
+
+```
+
+
+---
+
+
+```{r}
+
+#match <- apply(as.data.frame(rev_nano_agg$peak), 1, function(p) ifelse(any(((rev_cage_agg$peak - 30) <= p) & ((rev_cage_agg$peak + 30) >= p)), p, NA))
+
+```
+
+
+---
+
+```{r}
+
+# Create empty matrix to fill
+both_rev <- data.frame(matrix(ncol = 2, nrow = 0))
+names <- c("cage_peak", "nano_peak")
+colnames(both_rev) <- names
+
+```
+
+
+```{r }
+
+# R loop to iterate through peaks within cage seq range
+for (x in rev_nano_agg$nano_peak) {
+  for (y in rev_cage_agg$cage_peak) {
+    if (x > (y-30) & x < (y+30)) {
+      both_rev <- rbind(both_rev,c(y,x))
+    }
+  }
+}
+
+# Name columns
+colnames(both_rev) <- names
+both_rev
+
+```
+
+
+
+```{r}
+
+# Calculate difference between cage and nanopore
+both_rev$difference <- (both_rev$nano_peak - both_rev$cage_peak)
+
+# Add hour and tag counts to dataframe
+both_rev <- merge(both_rev, rev_cage_agg, by = "cage_peak")
+both_rev <- merge(both_rev, rev_nano_agg, by = "nano_peak")
+both_rev
+
+```
+
+
+```{r}
+
+unik <- duplicated(both_rev$nano_peak)  ## logical vector of unique values
+seq_along(both_rev$nano_peak)[unik]  ## indices
+unik_1 <- duplicated(both_rev$cage_peak)  ## logical vector of unique values
+seq_along(both_rev$cage_peak)[unik_1]  ## indices
+
+both_rev
+
+# Remove duplicate rows
+both_rev_filter <- both_rev[-c(21, 30, 34, 35, 38, 40, 42, 10, 14, 18, 24, 25, 29, 39, 47, 54, 56, 60, 72, 75), ]
+
+both_rev_filter$strand <- "Reverse"
+both_rev_filter
+
+# 21, 36, 38, 40, 43, 10, 15, 18, 24, 26, 29, 31, 35, 39, 40, 47, 55, 57, 61, 72, 75
+## 34-36, 37-40 duplicates in both - check on these 
+
+```
+
+
+```{r}
+
+ggplot(both_rev_filter, aes(difference, fill="lilac")) + geom_histogram(binwidth = 1)
+
+```
+
+---
+
+
+
+
+---
+
+```{r}
+
+both_rev_filter_neg <- both_rev_filter
+both_rev_filter_neg$difference <- (both_rev_filter_neg$difference * -1)
+
+final <- rbind(both_for_filter, both_rev_filter_neg)
+length(unique(final$nano_peak))
+length(unique(final$cage_peak))
+
+# Remove rows in four duplicate group (62-65)
+final_filter <- final[-c(62, 63, 65),]
+as.tibble(final_filter)
+
+write.table(final_filter, file = "final_peaks.tsv", row.names=F, sep="\t", quote=FALSE)
+
+final_plot <- ggplot(data = final_filter, aes(x = difference, fill=strand)) + 
+  geom_histogram(alpha = 0.5, binwidth = 1, position="identity") + 
+  scale_fill_manual(values = c("red2", "dodgerblue2")) +
+  geom_vline(xintercept = 0, linetype = "dashed", alpha = 0.5) +
+  xlim(-28, 28) +
+  labs(title = "Nanopore Tag Start Site vs. Cage-Seq TSS", y = "Count", x = "Position Difference",
+       fill = "Strand") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+png("final_peaks_hist.png", units="in", width=7, height=5, res=600)
+final_plot
+dev.off()
+
+final_plot
+  
+#geom_text(aes(0, 17, label = "CAGE TSS", hjust = 1.2))
+
+```
+
+
+---
+
+
+
+
+
+---
+
+PAA
+
+---
+
+```{r}
+
+# Forward
+for_cage_18_paa$peak <- (for_cage_18_paa$start + for_cage_18_paa$end)/2
+for_nano_18_paa$peak <- (for_nano_18_paa$start + for_nano_18_paa$end)/2
+
+colnames(for_cage_18_paa)[1:4] <-  c("start", "end", "tag", "cage_peak_paa")
+colnames(for_nano_18_paa)[1:4] <-  c("start", "end", "tag", "nano_peak_paa")
+
+
+# Create empty matrix to fill
+both_for_paa <- data.frame(matrix(ncol = 2, nrow = 0))
+names <- c("cage_peak_paa", "nano_peak_paa")
+colnames(both_for_paa) <- names
+
+# R loop to iterate through peaks within cage seq range
+for (x in for_nano_18_paa$nano_peak_paa) {
+  for (y in for_cage_18_paa$cage_peak_paa) {
+    if (x > (y-30) & x < (y+30)) {
+      both_for_paa <- rbind(both_for_paa,c(y,x))
+    }
+  }
+}
+
+# Name columns
+colnames(both_for_paa) <- names
+
+# Calculate difference between cage and nanopore
+both_for_paa$difference <- (both_for_paa$nano_peak_paa - both_for_paa$cage_peak_paa)
+
+# Add hour and tag counts to dataframe
+both_for_paa <- merge(both_for_paa, for_cage_18_paa, by = "cage_peak_paa")
+both_for_paa <- merge(both_for_paa, for_nano_18_paa, by = "nano_peak_paa")
+
+as.tibble(both_for_paa)
+
+# Reverse
+rev_cage_18_paa$peak <- (rev_cage_18_paa$start + rev_cage_18_paa$end)/2
+rev_nano_18_paa$peak <- (rev_nano_18_paa$start + rev_nano_18_paa$end)/2
+
+colnames(rev_cage_18_paa)[1:4] <- c("start", "end", "tag", "cage_peak_paa")
+colnames(rev_nano_18_paa)[1:4] <- c("start", "end", "tag", "nano_peak_paa")
+
+# Create empty matrix to fill
+both_rev_paa <- data.frame(matrix(ncol = 2, nrow = 0))
+names <- c("cage_peak_paa", "nano_peak_paa")
+colnames(both_rev_paa) <- names
+
+# R loop to iterate through peaks within cage seq range
+for (x in rev_nano_18_paa$nano_peak_paa) {
+  for (y in rev_cage_18_paa$cage_peak_paa) {
+    if (x > (y-30) & x < (y+30)) {
+      both_rev_paa <- rbind(both_rev_paa,c(y,x))
+    }
+  }
+}
+
+# Name columns
+colnames(both_rev_paa) <- names
+
+# Calculate difference between cage and nanopore
+both_rev_paa$difference <- (both_rev_paa$nano_peak_paa - both_rev_paa$cage_peak_paa)
+
+# Add hour and tag counts to dataframe
+both_rev_paa <- merge(both_rev_paa, rev_cage_18_paa, by = "cage_peak_paa")
+both_rev_paa <- merge(both_rev_paa, rev_nano_18_paa, by = "nano_peak_paa")
+
+```
+
+```{r}
+
+# rbind dataframes for a final PAA dataframe 
+both_for_paa$strand <- "Forward"
+both_rev_paa$strand <- "Reverse"
+final_paa <- rbind(both_for_paa, both_rev_paa)
+as.tibble(final_paa)
+
+# Check for duplicates
+length(unique(final_paa$nano_peak_paa))
+length(unique(final_paa$cage_peak_paa))
+
+# Check for interest (PAA has 84 peaks, 18h/6h has 129 peaks)
+length(intersect(final_filter$cage_peak, final_paa$cage_peak_paa)) #72
+length(setdiff(final_filter$cage_peak, final_paa$cage_peak_paa)) #57 
+
+# 12 do not intersect 
+
+# Merge (find the list of ones that do not intersect)
+paa_intersect <- merge(final_filter, final_paa, by.x = 'cage_peak', by.y = 'cage_peak_paa',
+                       type = "full")
+paa_intersect
+
+# Vector intersect
+all <- as.vector(final_filter$cage_peak)
+paa <- as.vector(final_paa$cage_peak_paa)
+final_paa_int <- list.append(all, paa)
+final_paa_int
+unique(final_paa_int)
+
+```
+
+
+---
+
+```{r}
+
+# Add column to keep track of sites
+final_filter$sites_all <- 1
+final_paa$sites_paa <- 1
+
+# Rename cage peak columns for merge
+colnames(final_filter)[2] <- "cage_peak"
+colnames(final_paa)[2] <- "cage_peak"
+
+final_filter
+final_paa
+
+# Add 18h_paa column for tracking
+final_paa$paa_hour <- "18h_paa"
+final_paa <- dplyr::select(final_paa, nano_peak_paa, cage_peak, difference, strand, paa_hour, tag.y)
+
+# Join all and paa dataset for one, merged dataset 
+all_paa <- full_join(final_filter, final_paa, by = 'cage_peak')
+all_paa$strand <- coalesce(all_paa$strand.x, all_paa$strand.y)
+
+all_peaks_pos <- all_paa
+
+# Seelct final columns
+all_paa <- dplyr::select(all_paa, cage_peak, cage_hour, nano_hour, paa_hour,
+                         cage_tag, nano_tag, tag.y, strand)
+
+# Rename final columns 
+colnames(all_paa) <- c("tss", "cage_hour", "nano_hour", "paa_hour", 
+                       "cage_tag", "nano_tag", "paa_tag", "strand")
+as.tibble(all_paa)
+
+
+```
+
+
+---
+
+```{r}
+
+### CHX
+
+# Forward
+for_nano_6_chx$peak <- (for_nano_6_chx$start + for_nano_6_chx$end)/2
+colnames(for_nano_6_chx)[1:4] <-  c("start", "end", "tag", "peak")
+
+# Create empty matrix to fill
+both_chx_for <- data.frame(matrix(ncol = 2, nrow = 0))
+names <- c("tss", "peak")
+colnames(both_chx_for) <- names
+
+# R loop to iterate through peaks within cage seq range
+for (x in for_nano_6_chx$peak) {
+  for (y in all_paa$tss) {
+    for (z in all_paa$strand){
+      if (x > (y-30) & x < (y+30) & (z == "Forward")) {
+        both_chx_for <- rbind(both_chx_for,c(y,x))
+        both_chx_for <- unique(both_chx_for)
+      }
+    }
+  }
+}
+
+# Name columns
+colnames(both_chx_for) <- names
+
+# Calculate difference between cage and nanopore
+both_chx_for$difference <- (both_chx_for$peak - both_chx_for$tss)
+both_chx_for
+
+
+# Reverse
+rev_nano_6_chx$peak <- (rev_nano_6_chx$start + rev_nano_6_chx$end)/2
+colnames(rev_nano_6_chx)[1:4] <-  c("start", "end", "tag", "peak")
+
+# Create empty matrix to fill
+both_chx_rev <- data.frame(matrix(ncol = 2, nrow = 0))
+names <- c("tss", "peak")
+colnames(both_chx_rev) <- names
+
+# R loop to iterate through peaks within cage seq range
+for (x in rev_nano_6_chx$peak) {
+  for (y in all_paa$tss) {
+    for (z in all_paa$strand){
+      if (x > (y-30) & x < (y+30) & (z == "Reverse")) {
+        both_chx_rev <- rbind(both_chx_rev,c(y,x))
+        both_chx_rev <- unique(both_chx_rev)
+      }
+    }
+  }
+}
+
+# Name columns
+colnames(both_chx_rev) <- names
+
+# Calculate difference between cage and nanopore
+both_chx_rev$difference <- (both_chx_rev$peak - both_chx_rev$tss)
+both_chx_rev
+
+# Add hour and tag counts to dataframe
+both_chx_for <- merge(both_chx_for, for_nano_6_chx, by = "peak")
+both_chx_rev <- merge(both_chx_rev, rev_nano_6_chx, by = "peak")
+
+# rbind dataframes for a final CHX dataframe 
+both_chx_for$strand <- "Forward"
+both_chx_rev$strand <- "Reverse"
+final_chx <- rbind(both_chx_for, both_chx_rev)
+final_chx
+
+# Select and rename peak columns for merge
+final_chx$chx_hour <- "6h_chx"
+final_chx <- dplyr::select(final_chx, tss, chx_hour, tag, strand, peak)
+
+colnames(final_chx)[1:4] <- c("tss", "chx_hour", "chx_tag", 'strand', "peak")
+
+
+# Join all_paa and chx dataset for one, merged dataset 
+all_paa_chx <- full_join(all_paa, final_chx, by = 'tss')
+all_paa_chx$strand <- coalesce(all_paa_chx$strand.x, all_paa_chx$strand.y)
+all_paa_chx <- dplyr::select(all_paa_chx, tss, cage_hour, nano_hour, paa_hour,
+                             chx_hour, cage_tag, nano_tag, paa_tag, chx_tag, strand)
+
+as.tibble(all_paa_chx)
+
+write.table(all_paa_chx, file = "final_peaks.tsv", row.names=F, sep="\t", quote=FALSE)
+
+
+```
+
+
+---
+
+
+
+---
+
+```{r}
+
+# Establish stages 
+
+all_paa_chx$stage <- 'IE'
+all_paa_chx$stage[is.na(all_paa_chx$chx_hour) == TRUE] <- 'E, LL'
+all_paa_chx$stage[is.na(all_paa_chx$paa_hour) == TRUE] <- 'TL'
+
+all_paa_chx
+
+```
+
+
+---
+
+```{r}
+
+#TPM
+# input will be genome coverage bed
+
+#total <- sum(input$count)
+#input$bpm <- apply(bedgraph$count, 1, function(x) x/total * 1000000)
+
+```
+
+
+
+---
+
+```{r}
+
+## Extra plot for Dan
+
+all_peaks_pos <- dplyr::select(all_peaks_pos, cage_peak, nano_peak, nano_peak_paa,
+                               cage_hour, nano_hour, paa_hour, strand)
+
+colnames(all_peaks_pos)[1:3] <- c("tss", "nano_peak", "paa_peak")
+
+
+all_peaks_pos
+colnames(final_chx)[5] <- "chx_peak"
+final_chx
+
+
+all_peaks_pos_final <- full_join(all_peaks_pos, final_chx, by = 'tss')
+all_peaks_pos_final$strand <- coalesce(all_peaks_pos_final$strand.x, all_peaks_pos_final$strand.y)
+
+all_peaks_pos_final <- dplyr::select(all_peaks_pos_final, tss, nano_peak, paa_peak, chx_peak,
+                                     cage_hour, nano_hour, paa_hour, chx_hour, strand)
+
+all_peaks_pos_final
+
+write.table(all_peaks_pos_final, file = "final_peaks_positions.tsv", row.names=F, sep="\t", quote=FALSE)
+
+```
+
+
+
+---
+
+```{r}
+
+# Import expression files
+
+exp_18h <- read.delim("cage_18h_patton_tag_count.txt", sep = "", header = FALSE)
+exp_18h_paa <- read.delim("cage_18h_PAA_patton_tag_count.txt", sep = "", header = FALSE)
+exp_6h <-  read.delim("cage_6h_patton_tag_count.txt", sep = "", header = FALSE)
+
+nrow(exp_18h) #27601229
+nrow(exp_18h_paa) #27592361
+nrow(exp_6h) #27091849
+
+exp_18h
+
+```
+
+
+```{r}
+
+# 18h
+colnames(exp_18h) <- c("chr", "pos", "strand")
+exp_18h$count <- 1
+exp_18h_fin <- aggregate(. ~ chr + pos + strand, data = exp_18h, sum)
+exp_18h_fin <- filter(exp_18h_fin, chr == "patton")
+exp_18h_fin$norm_tag_count <- (exp_18h_fin$count/27601229) * 1000000
+
+write.table(exp_18h_fin, file = "18h_norm_tag_count.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+exp_18h_tag <- dplyr::select(exp_18h_fin, pos, norm_tag_count, strand)
+colnames(exp_18h_tag) <- c("tss", "norm_tag_count_18h", "strand")
+
+# 18h PAA
+colnames(exp_18h_paa) <- c("chr", "pos", "strand")
+exp_18h_paa$count <- 1
+exp_18h_paa_fin <- aggregate(. ~ chr + pos + strand, data = exp_18h_paa, sum)
+exp_18h_paa_fin <- filter(exp_18h_paa_fin, chr == "patton")
+exp_18h_paa_fin$norm_tag_count <- (exp_18h_paa_fin$count/27592361) * 1000000
+
+write.table(exp_18h_paa_fin, file = "18h_paa_norm_tag_count.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+
+exp_18h_paa_tag <- dplyr::select(exp_18h_paa_fin, pos, norm_tag_count, strand)
+colnames(exp_18h_paa_tag) <- c("tss", "norm_tag_count_18h_paa", "strand")
+
+# 6h
+colnames(exp_6h) <- c("chr", "pos", "strand")
+exp_6h$count <- 1
+exp_6h_fin <- aggregate(. ~ chr + pos + strand, data = exp_6h, sum)
+exp_6h_fin <- filter(exp_6h_fin, chr == "patton")
+
+write.table(exp_6h_fin, file = "6h_norm_tag_count.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+
+exp_6h_fin$norm_tag_count <- (exp_6h_fin$count/27091849) * 1000000
+exp_6h_tag <- dplyr::select(exp_6h_fin, pos, norm_tag_count, strand)
+colnames(exp_6h_tag) <- c("tss", "norm_tag_count_6h", "strand")
+
+```
+
+
+```{r}
+
+exp_18h_tag_for <- filter(exp_18h_tag, strand == "+")
+exp_18h_tag_for <- dplyr::select(exp_18h_tag_for, tss, norm_tag_count_18h)
+exp_18h_tag_rev <- filter(exp_18h_tag, strand == "-")
+exp_18h_tag_rev <- dplyr::select(exp_18h_tag_rev, tss, norm_tag_count_18h)
+
+exp_18h_paa_tag_for <- filter(exp_18h_paa_tag, strand == "+")
+exp_18h_paa_tag_for <- dplyr::select(exp_18h_paa_tag_for, tss, norm_tag_count_18h_paa)
+exp_18h_paa_tag_rev <- filter(exp_18h_paa_tag, strand == "-")
+exp_18h_paa_tag_rev <- dplyr::select(exp_18h_paa_tag_rev, tss, norm_tag_count_18h_paa)
+
+exp_6h_tag_for <- filter(exp_6h_tag, strand == "+")
+exp_6h_tag_for <- dplyr::select(exp_6h_tag_for, tss, norm_tag_count_6h)
+exp_6h_tag_rev <- filter(exp_6h_tag, strand == "-")
+exp_6h_tag_rev <- dplyr::select(exp_6h_tag_rev, tss, norm_tag_count_6h)
+
+all_paa_chx_for <- filter(all_paa_chx, strand == "Forward")
+all_paa_chx_rev <- filter(all_paa_chx, strand == "Reverse")
+
+```
+
+
+
+```{r}
+
+# Forward
+
+final_tag_for <- left_join(all_paa_chx_for, exp_18h_tag_for, by = "tss")
+final_tag_for <- left_join(final_tag_for, exp_6h_tag_for, by = "tss")
+final_tag_for <- left_join(final_tag_for, exp_18h_paa_tag_for, by = "tss")
+final_tag_for
+
+
+final_tag_rev <- left_join(all_paa_chx_rev, exp_18h_tag_rev, by = "tss")
+final_tag_rev <- left_join(final_tag_rev, exp_6h_tag_rev, by = "tss")
+final_tag_rev <- left_join(final_tag_rev, exp_18h_paa_tag_rev, by = "tss")
+final_tag_rev
+
+final_tag <- rbind(final_tag_for, final_tag_rev)
+
+final_tag
+
+```
+
+
+
+---
+
+```{r}
+
+final_tag$stage_norm <- NA
+
+final_tag$stage_norm[((final_tag$stage == "E, LL") &
+                       (final_tag$norm_tag_count_18h > final_tag$norm_tag_count_18h_paa) &
+                       (final_tag$norm_tag_count_6h > final_tag$norm_tag_count_18h_paa)) |
+                       ((final_tag$stage == "E, LL") & 
+                          (is.na(final_tag$norm_tag_count_18h_paa) == TRUE) &
+                          (is.na(final_tag$norm_tag_count_18h) == FALSE) & 
+                          (is.na(final_tag$norm_tag_count_6h) == FALSE))] <- 'LL'
+
+final_tag$stage_norm[(final_tag$stage == "E, LL") &
+                       (final_tag$norm_tag_count_18h < final_tag$norm_tag_count_18h_paa) &
+                       (final_tag$norm_tag_count_6h < final_tag$norm_tag_count_18h_paa)] <- 'E'
+
+final_tag$stage_norm[(final_tag$stage == "E, LL") &
+                       (final_tag$norm_tag_count_18h < final_tag$norm_tag_count_18h_paa) &
+                       (final_tag$norm_tag_count_6h > final_tag$norm_tag_count_18h_paa)] <- 'E (18h < 18h_paa)'
+
+final_tag$stage_norm[(final_tag$stage == "E, LL") &
+                       (final_tag$norm_tag_count_18h > final_tag$norm_tag_count_18h_paa) &
+                       (final_tag$norm_tag_count_6h < final_tag$norm_tag_count_18h_paa)] <- 'E (6h < 18h_paa)'
+
+View(final_tag)
+
+write.table(final_tag, file = "final_peaks_TPM.tsv", row.names=F, sep="\t", quote=FALSE)
+
+```
+
+
+---
+
+
+
+
+---
